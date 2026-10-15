@@ -62,18 +62,32 @@ disp(results);
 
 %Plot the airfoil and velocity arrows
 figure('Color','w');
-plot(g.x(:,1),g.y(:,1),'k-');
+plot(g.x(:,1),g.y(:,1),'k-', 'LineWidth',2);
 hold on;
 plot(x,y,'k--');
 
+
+ax = gca;
+ax.Color = 'w';
+ax.Color = 'w';
+ax.XColor = 'k';
+ax.YColor = 'k';
+
+
 idx = 1:8:(length(x)-1);
-quiver(x(idx),y(idx),u(idx),v(idx),'b');
+quiver(x(idx),y(idx),u(idx),v(idx),'b', 'Linewidth', 1.25, 'MaxHeadSize',0.07);
 axis equal;
 grid on;
 xlabel('x (ft)');
 ylabel('y (ft)');
-title('Airfoil Boundary and Velocity Field');
-legend('Airfoil','Outermost Boundary','Velocity');
+title('Airfoil Boundary and Velocity Field', 'Color','k');
+
+% Legend creation and formatting
+key = legend('Airfoil','Outermost Boundary','Velocity');
+
+key.Color = 'w';
+key.EdgeColor = 'k';
+key.TextColor = 'k';
 
 %Plot each segments circulation contribution
 xMid = (x(1:end-1) + x(2:end))/2;
@@ -89,10 +103,25 @@ plot(xMid(upper), dGamma(upper),'-','LineWidth',1.5);
 hold on;
 plot(xMid(lower), dGamma(lower),'-','LineWidth',1.5);
 
+
+% Change colors of axes and background
+ax = gca;
+ax.Color = 'w';
+ax.Color = 'w';
+ax.XColor = 'k';
+ax.YColor = 'k';
+
 grid on;
 xlabel('Segment midpoint x (ft)');
 ylabel('\Delta\Gamma_i (ft^2/s)');
-title('Circulation contribution of each segment');
+title('Circulation contribution of each segment', 'Color','k');
 
-legend('Upper Boundary Branch','Lower Boundary Branch', 'Location','best');
+
+% Legend 2 creation and formatting
+key2 = legend('Upper Boundary Branch','Lower Boundary Branch', 'Location','best');
+
+key2.Color = 'w';
+key2.EdgeColor = 'k';
+key2.TextColor = 'k';
+
 
