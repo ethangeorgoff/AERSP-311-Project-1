@@ -75,7 +75,7 @@ ax.YColor = 'k';
 
 
 idx = 1:8:(length(x)-1);
-quiver(x(idx),y(idx),u(idx),v(idx),'b', 'Linewidth', 1.25, 'MaxHeadSize',0.07);
+quiver(x(idx),y(idx),u(idx),v(idx),'b', 'Linewidth', 1.01, 'MaxHeadSize',0.04);
 axis equal;
 grid on;
 xlabel('x (ft)');
@@ -125,3 +125,129 @@ key2.EdgeColor = 'k';
 key2.TextColor = 'k';
 
 
+% -------------- EXTRA CREDIT ------------------
+
+
+% determine array size
+[num_i, num_j] = size(g.x);
+
+
+% compute gradient for all necessary values
+[x_j, x_i] = gradient(g.x);
+[y_j, y_i] = gradient(g.y);
+[u_j, u_i] = gradient(f.u);
+[v_j, v_i] = gradient(f.v);
+
+
+% setup matrices for derivatives
+dudx = zeros(num_i, num_j);
+dudy = zeros(num_i, num_j);
+dvdx = zeros(num_i, num_j);
+dvdy = zeros(num_i, num_j);
+
+
+
+% loop through to solve for real derivatives
+for i = 1:num_i
+    for j = 1:num_j
+        % create matrix to later solve
+        % [dx/di, dy/di]
+        % [dx/dj, dy/dj]
+        A = [ x_i(i,j), y_i(i,j); 
+            x_j(i,j), y_j(i,j) ];
+
+        % create vectors to solve the linear system
+        % [du/di; du/dj] and [dv/di; dv/dj]
+        vec_u = [ u_i(i,j); u_j(i,j) ];
+        vec_v = [ v_i(i,j); v_j(i,j) ];
+
+        % solve for derivatives of u using \
+        sol_u = A \ vec_u;
+        dudx(i,j) = sol_u(1);
+        dudy(i,j) = sol_u(2);
+
+        % solve for derivatives of v using \
+        sol_v = A \ vec_v;
+        dvdx(i,j) = sol_v(1);
+        dvdy(i,j) = sol_v(2);
+    end
+end
+
+
+% vorticity assignment
+vorticity = dvdx - dudy;
+
+
+% cell geometry and setup
+cell_i = num_i - 1;
+cell_j = num_j - 1;
+cell_area = zeros(cell_i, cell_j);
+cell_vorticity = zeros(cell_i, cell_j);
+
+% loop to find cell areas
+for i = 1:cell_i
+    for j = 1:cell_j
+
+        % find corners of quadrilateral cells
+        x_corner = [g.x(i,j), g.x(i+1,j), g.x(i+1,j+1), g.x(i,j+1)];
+        y_corner = [g.y(i,j), g.y(i+1,j), g.y(i+1,j+1), g.y(i,j+1)];
+
+        % calculate cell area = 0.5 * ((x1y2 + x2y3 + x3y4 + x4y1) -
+        % (y1x2 + y2x3 + y3x4 + y4x1))
+        cell_area(i,j) = 0.5 * abs(x_corner(1)*y_corner(2) + x_corner(2)*y_corner(3)... % extend line
+            + x_corner(3)*y_corner(4) + x_corner(4)*y_corner(1) ... % extend line
+            - (y_corner(1)*x_corner(2) + y_corner(2)*x_corner(3) ... % extend line
+            + y_corner(3)*x_corner(4) + y_corner(4)*x_corner(1)));
+    
+
+
+        % Average vorticity over the four cell corners
+        cell_vorticity(i,j) = mean([vorticity(i,j), vorticity(i+1,j), ... % extend line
+            vorticity(i+1,j+1), vorticity(i,j+1)]);
+
+    end
+end
+
+
+% calculate values
+gamma_vorticity = -sum(cell_vorticity .* cell_area, 'all');
+cl_vorticity = 2 * gamma_vorticity / (Uinf * c);
+percent_diff_2 = 100 * abs(cl_vorticity - clCFD)/ clCFD;
+
+
+% table def
+header = {'Path Integral', 'Vorticity Sum', 'CFD Solution'};
+gamma_table = [Gamma; gamma_vorticity; NaN];
+cl_table = [cl; cl_vorticity; clCFD];
+percent_table = [percentDifference; percent_diff_2; 0];
+
+extra_credit_table = table( ...
+    ["Path Integral"; "Vorticity Sum"; "CFD Solution"], ...
+    [Gamma; gamma_vorticity; NaN], ...
+    [cl; cl_vorticity; clCFD], ...
+    [percentDifference; percent_diff_2; 0], ...
+    'VariableNames', {'Method', 'Gamma', 'cl', 'PercentDifference'});
+
+disp('-------- Extra Credit ---------');
+disp(extra_credit_table);
+
+
+% plotting final results
+figure('Color','w');
+levels = linspace(-2000, 2000, 50);
+contourf(g.x, g.y, vorticity, levels, 'LineStyle', 'none');
+hold on;
+fill(g.x(:,1), g.y(:,1), 'k'); % Solid black airfoil patch
+
+cb = colorbar;
+clim([-2000, 2000]);
+ylabel(cb, 'Vorticity omega_z (1/s)', 'Color', 'k');
+colormap(jet);
+axis equal; grid on;
+xlabel('x (ft)'); ylabel('y (ft)');
+title('Vorticity Contour Field (omega_z)', 'Color', 'k');
+
+axEC = gca;
+axEC.Color = 'w';
+axEC.XColor = 'k';
+axEC.YColor = 'k';
